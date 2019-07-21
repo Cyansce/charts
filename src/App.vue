@@ -6,7 +6,12 @@
         <li class="nav-item">
           <router-link to="/d3">d3-demo</router-link>
         </li>
-        <li class="nav-item">demo2</li>
+        <li class="nav-item">
+          <router-link to="/stacks">d3-stacks</router-link>
+        </li>
+        <li class="nav-item">
+          <router-link to="/drag">dragable</router-link>
+        </li>
       </ul>
     </div>
     <div class="container">
@@ -48,6 +53,10 @@ export default {
 }
 .side-nav>ul a {
   text-decoration: none;
+  color: inherit
+}
+.side-nav>ul a:hover {
+  text-decoration: underline
 }
 .container {
   width: 100%;

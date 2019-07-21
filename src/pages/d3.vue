@@ -48,7 +48,7 @@ export default {
       const svg = d3.select(".right")
         .append("svg")
         .attr("width", this.d_options.width)
-        .attr("height", this.d_options.height);
+        .attr("height", this.d_options.height)
 
       const linearY = d3.scaleLinear()
                       .domain([0, 1500])
