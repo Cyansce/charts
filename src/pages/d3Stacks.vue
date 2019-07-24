@@ -1,9 +1,9 @@
 <template>
   <div class="d3-stack">
     <h1>d3-stacks</h1>
-    <div class="content">
-      <div class="left" ref="left"></div>
-      <div class="right" ref="right"></div>
+    <div class="left" ref="left"></div>
+    <div class="right" ref="right">
+      <div id="tooltip"></div>
     </div>
   </div>
 </template>
@@ -12,6 +12,7 @@
 /* eslint-disable */
 import echarts from "echarts";
 import * as d3 from 'd3';
+import tip from 'd3-tip';
 import _ from 'lodash';
 const data = [
   {
@@ -191,7 +192,7 @@ export default {
           .data(series)
           .join('path')
           .attr('fill', ({key}) => colors(key))
-          .attr('opacity', 0.8)
+          .attr('opacity', 0.7)
           .attr('transform', `translate(${margin.left}, ${margin.top})`)
           .attr('d', area)
       
@@ -201,7 +202,7 @@ export default {
             .data(s)
             .enter()
             .append('circle')
-            .attr('class', 'circle-point')
+            .attr('class', d => `circle-point ${d.data.date}`)
             .attr('r', 3)
             .attr('transform', d => `translate(${x(d.data.date) + margin.left}, ${y(d[1]) + margin.top})`)
             .attr('fill', 'white')
@@ -211,36 +212,75 @@ export default {
       console.log(series)
 
 
-      svg.on('mousemove', function() {
-        const [x, y] = d3.mouse(this)
-        if (x >= margin.left && x <= (svgSize.width - margin.right) && y >= margin.top && y <= (svgSize.height - margin.bottom)) {
-          console.log(x, y)
-          svg.append('g').attr('class', 'line-auxiliary')
-              .append('line')
-              .attr('x1', margin.left)
-              .attr('x2', svgSize.width - margin.right)
-              .attr('y1', y)
-              .attr('y2', y)
-              .attr('stroke', 'red')
-              .attr('stroke-dasharray', '3, 3')
-        }
-      })
+      const mouseG = svg.append('g').attr('class', 'mouse-effect')
+      mouseG.append('path')
+            .attr('class', 'mouse-effect-line-vertical')
+            .attr('stroke', '#cccccc')
+            .attr('stroke-width', 1)
+            .attr('stroke-dasharray', [3, 3])
+      
+      mouseG.append('path')
+            .attr('class', 'mouse-effect-line-horizatal')
+            .attr('stroke', '#cccccc')
+            .attr('stroke-width', 1)
+      
+      const effectRuler = d3.scaleQuantize()
+                            .domain([0, svgSize.width])
+                            .range(data.map(item => item.date))
+      
+      mouseG.append('svg:rect')
+            .attr('width', svgSize.width - margin.left - margin.right)
+            .attr('height', svgSize.height - margin.top - margin.bottom)
+            .attr('fill', 'none')
+            .attr('transform', `translate(${margin.left} ${margin.top})`)
+            .attr('pointer-events', 'all')
+            .on('mouseover', function() {
+              d3.select('.mouse-effect-line-vertical').attr('opacity', 1)
+              d3.select('.mouse-effect-line-horizatal').attr('opacity', 1)
+              d3.select('#tooltip').style('visibility', 'visible')
+            })
+            .on('mouseout', function() {
+              d3.select('.mouse-effect-line-vertical').attr('opacity', 0)
+              d3.select('.mouse-effect-line-horizatal').attr('opacity', 0)
+              d3.selectAll('.circle-point').attr('r', 3)
+              d3.select('#tooltip').style('visibility', 'hidden')
+            })
+            .on('mousemove', function() {
+              const [vx, vy] = d3.mouse(this)
+              const date = effectRuler(vx)
+              const tx = x(date)
+              const lineV = d3.select('.mouse-effect-line-vertical')
+              const lineH = d3.select('.mouse-effect-line-horizatal')
+              lineV.attr('d', `M${margin.left} ${vy + margin.top}, ${svgSize.width - margin.left} ${vy + margin.top}`)
+              lineH.transition().duration(50).attr('d', `M${tx + margin.left} ${margin.top}, ${tx + margin.left} ${svgSize.height - margin.top}`)
+              d3.selectAll('.circle-point').attr('r', 3)
+              d3.selectAll('.' + date).attr('r', 6)
+              const tip = d3.select('#tooltip')
+              const d = data.find(item => item.date === date)
+              tip.style('top', `${vy + margin.top + 20}px`)
+                 .style('left', `${vx + margin.left + 20}px`)
+                 .html(x => {
+                   let html = ``
+                   for(let i in d) {
+                     html += `<p>${i}: ${d[i]}</p>`
+                   }
+                   return html 
+                 })
+            })
+            
+
     }
   }
 };
 </script>
 
 <style>
-.content {
-  display: flex;
-}
 .left,
 .right {
-  width: 50%;
   height: 500px;
 }
-.left {
-  border-right: 1px solid #000;
+.right {
+  position: relative;
 }
 .d3-stack .y-gird line, .d3-stack .y-gird path {
   color: #cccccc
@@ -253,5 +293,20 @@ export default {
 }
 .d3-stack .circle-point:hover {
   r: 6
+}
+.d3-stack #tooltip {
+  position: absolute;
+  width: 100px;
+  font-size: 12px;
+  color: white;
+  line-height: 12px;
+  border: 1px solid black;
+  border-radius: 5px;
+  background-color: #000;
+  opacity: 0.6;
+  top: 20px;
+  left: 100px;
+  padding: 0 10px;
+  visibility: hidden;
 }
 </style>
